@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
@@ -33,6 +34,7 @@ import io.github.warleysr.dechainer.screens.challenges.MathChallenge
 import io.github.warleysr.dechainer.screens.challenges.ReadingChallenge
 import io.github.warleysr.dechainer.screens.challenges.TetrisChallenge
 import io.github.warleysr.dechainer.screens.challenges.WordChallenge
+import io.github.warleysr.dechainer.screens.common.UsageLimitsOverview
 import io.github.warleysr.dechainer.security.SecurityManager
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
@@ -49,6 +51,7 @@ fun LockScreen(onAuthenticated: () -> Unit) {
     var gaveUp by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
     var impulseRemaining by remember { mutableLongStateOf(-1L) }
+    var showingLimits by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -147,6 +150,27 @@ fun LockScreen(onAuthenticated: () -> Unit) {
             return@Surface
         }
 
+        if (showingLimits) {
+            BackHandler { showingLimits = false }
+            UsageLimitsOverview(onClose = { showingLimits = false })
+            return@Surface
+        }
+
+        val viewLimitsButton: @Composable () -> Unit = {
+            if (DeviceOwnerRepository.isDeviceOwner()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                BigActionButton(
+                    icon = Icons.Outlined.HourglassBottom,
+                    title = stringResource(R.string.view_usage_limits),
+                    subtitle = stringResource(R.string.view_usage_limits_subtitle),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    height = 88.dp,
+                    onClick = { showingLimits = true }
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -156,6 +180,7 @@ fun LockScreen(onAuthenticated: () -> Unit) {
         ) {
             if (impulseRemaining > 0) {
                 ImpulseCountdown(impulseRemaining)
+                viewLimitsButton()
             } else {
                 if (gaveUp) {
                     Text(
@@ -203,6 +228,8 @@ fun LockScreen(onAuthenticated: () -> Unit) {
                         textAlign = TextAlign.Center
                     )
                 }
+
+                viewLimitsButton()
             }
         }
     }

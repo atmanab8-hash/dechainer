@@ -287,6 +287,15 @@
     <string name="having_impulses_subtitle">Trancar tudo agora</string>
     <string name="access_app">Acessar app</string>
     <string name="access_app_subtitle">Requer autenticação</string>
+    <string name="view_usage_limits">Ver limites</string>
+    <string name="view_usage_limits_subtitle">Uso de hoje dos apps e grupos</string>
+    <string name="usage_limits_title">Uso de hoje</string>
+    <string name="usage_limits_groups">Grupos</string>
+    <string name="usage_limits_apps">Apps</string>
+    <string name="usage_limits_empty">Nenhum limite de tempo definido para apps ou grupos.</string>
+    <string name="usage_limits_used_of">%1$s de %2$s</string>
+    <string name="usage_limits_remaining">Restam %1$s</string>
+    <string name="usage_limits_reached">Limite atingido</string>
     <string name="impulse_timer_active">Bloqueio de impulsos ativo</string>
     <string name="impulse_lock_explanation">O botão de pânico tranca o próprio Dechainer pelo tempo definido aqui, e não há como desfazer antes do timer acabar. Você também pode fazer com que ele suspenda uma lista de apps pelo mesmo período — eles voltam automaticamente no final.</string>
     <string name="impulse_lock_challenge_section">Desafio para acessar</string>

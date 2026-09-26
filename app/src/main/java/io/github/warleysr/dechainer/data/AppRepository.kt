@@ -152,6 +152,11 @@ object AppRepository {
         updateCachedApp(packageName) { it.copy(timeLimitMinutes = minutes) }
     }
 
+    fun getAppTimeLimits(): Map<String, Int> =
+        context.getSharedPreferences("app_limits", Context.MODE_PRIVATE).all
+            .mapNotNull { (pkg, minutes) -> (minutes as? Int)?.takeIf { it > 0 }?.let { pkg to it } }
+            .toMap()
+
     fun getAppUsage(packageName: String, inMinutes: Boolean = false): Long {
         val used = context.getSharedPreferences("internal_usage_stats", Context.MODE_PRIVATE)
             .getLong(packageName, 0L)
