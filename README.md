@@ -46,12 +46,18 @@ Déchaîner runs with **Device Owner** privileges, which let it enforce restrict
 ### Impulse Lock (panic button)
 - A panic button on the lock screen, reachable even before authenticating: starts a 15-minute to 6-hour lock on Déchaîner itself, optionally also suspending a user-chosen list of apps for the same duration.
 - The timer resists system clock changes and survives the app or its service being restarted.
-- Opening Déchaîner normally requires biometric or device authentication, plus optional extra challenges before entry, done one after the other: a 5-problem arithmetic quiz, typing 32 words correctly in a row, and playing Tetris for a configurable number of minutes (time only counts while actually playing). Every challenge screen has a "give up" button that goes back to the lock screen.
+- Opening Déchaîner normally requires biometric or device authentication, plus optional extra challenges before entry. Any combination can be selected, and they run one after the other:
+  - **Math:** a 5-problem arithmetic quiz.
+  - **Words:** typing 32 words correctly in a row.
+  - **Tetris:** playing for a configurable number of minutes (time only counts while actually playing). Gravity speeds up as levels rise, with a lock delay, line clear animations and sound effects that can be muted. When the time is up the game keeps going until the user taps "Continue", so the current piece or line can be finished.
+  - **Reflective reading:** reading a configurable number of texts (5 by default) about lust and self-control, picked at random from one of four sources: Bible verses (King James Version / João Ferreira de Almeida), Quran verses (Saheeh International / Samir El-Hayek), quotes from philosophers and great writers, or the user's own phrases. Each text is timed for a slow reading pace based on its length, with words highlighted one by one as if being read, and the next one is only unlocked when the time runs out. Verses show their book, chapter and verse.
+- Every challenge screen has a "give up" button that goes back to the lock screen.
 
 ### Color Modes
 - Applies screen color filters during user-defined time windows (including windows that span midnight): grayscale, night light, extra dim (Android 12+) and color inversion, alone or combined, with adjustable intensity for night light and extra dim.
-- While a window is active the filters can't be turned off: switching them off (e.g. from Quick Settings) is reverted right away, and the active window, the selected modes and their intensity can't be changed until it ends. Adding windows or modes never asks for the recovery code; removing them, changing intensity or disabling the feature does.
-- The user's own display settings are restored once the window ends. Requires the Accessibility Service and the `WRITE_SECURE_SETTINGS` permission, granted automatically through Shizuku when Device Owner or the Accessibility Service is set up (or from the Color modes screen).
+- While a window is active the filters can't be turned off: switching them off (e.g. from Quick Settings) is reverted right away, and the active window, the selected modes and their intensity can't be changed until it ends, unless a recovery session is active. Adding windows or modes never asks for the recovery code; removing them, changing intensity or disabling the feature does.
+- On devices without a platform night light (e.g. some Samsung models), night light is drawn as an amber overlay by the Accessibility Service instead, since forcing the system setting there can black out the screen.
+- The user's own display settings are restored once the window ends, and also if the Accessibility Service is turned off. Requires the Accessibility Service and the `WRITE_SECURE_SETTINGS` permission, granted automatically through Shizuku when Device Owner is set up, or when enabling the feature if it's still missing.
 
 ### Other Safeguards
 - Optional shuffled keypad, so the recovery code can't be memorized by watching finger position.
@@ -59,6 +65,8 @@ Déchaîner runs with **Device Owner** privileges, which let it enforce restrict
 
 
 ## Installation and Configuration
+Déchaîner requires a 64-bit ARM device (`arm64-v8a`), which covers virtually every phone from recent years; 32-bit-only devices (mostly low-end Android Go phones) can't install it.
+
 The elevation to Device Owner status requires a bridge between user-space and system-space. Follow these steps precisely:
 
 1.  **Environment Setup**: Install the [Shizuku](https://shizuku.rikka.app/) application. This is required to execute the necessary ADB commands.
@@ -70,6 +78,8 @@ The elevation to Device Owner status requires a bridge between user-space and sy
 
 ## Recovery and Safety Protocol
 Upon configuration, Déchaîner generates a unique **16-character recovery code**. This key is the only ordinary way to disable restrictions or uninstall the application without a complete device wipe (if a wipe is even permitted by your active settings).
+
+The code is set up through a step-by-step wizard, both on first setup and when generating a new code: write it down on paper, type it back from the paper to confirm every letter, then choose a safe place to store it.
 
 ### Mandatory Safety Steps:
 *   **Physical Record**: You must manually write this key on a physical piece of paper.

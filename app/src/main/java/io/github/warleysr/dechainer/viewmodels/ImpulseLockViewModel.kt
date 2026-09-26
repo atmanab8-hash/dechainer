@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.data.AppRepository
+import io.github.warleysr.dechainer.data.ReadingLibrary
+import io.github.warleysr.dechainer.data.ReadingPassage
 import io.github.warleysr.dechainer.models.AppItem
 import io.github.warleysr.dechainer.security.SecurityManager
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,22 @@ class ImpulseLockViewModel : ViewModel() {
 
     var tetrisMinutes by mutableIntStateOf(SecurityManager.getTetrisMinutes(context))
         private set
+
+    var readingSource by mutableStateOf(SecurityManager.getReadingSource(context))
+        private set
+
+    /** The count as stored; [readingCount] is what will actually be shown with the current source. */
+    private var storedReadingCount by mutableIntStateOf(SecurityManager.getReadingCount(context))
+
+    var customPassages by mutableStateOf(SecurityManager.getCustomReadingPassages(context))
+        private set
+
+    val availableReadings: Int
+        get() = if (readingSource == SecurityManager.ReadingSource.CUSTOM) customPassages.size
+        else ReadingLibrary.availableCount(context, readingSource)
+
+    val readingCount: Int
+        get() = storedReadingCount.coerceAtMost(availableReadings)
 
     var action by mutableStateOf(SecurityManager.getImpulseAction(context))
         private set
@@ -58,6 +76,30 @@ class ImpulseLockViewModel : ViewModel() {
         val clamped = value.coerceIn(SecurityManager.TETRIS_MIN_MINUTES, SecurityManager.TETRIS_MAX_MINUTES)
         tetrisMinutes = clamped
         SecurityManager.setTetrisMinutes(context, clamped)
+    }
+
+    fun updateReadingSource(value: SecurityManager.ReadingSource) {
+        readingSource = value
+        SecurityManager.setReadingSource(context, value)
+    }
+
+    fun updateReadingCount(value: Int) {
+        val clamped = value.coerceIn(SecurityManager.READING_MIN_COUNT, availableReadings.coerceAtLeast(1))
+        storedReadingCount = clamped
+        SecurityManager.setReadingCount(context, clamped)
+    }
+
+    fun addCustomPassage(text: String, source: String) {
+        if (text.isBlank()) return
+        val updated = customPassages + ReadingPassage(text.trim(), source.trim())
+        customPassages = updated
+        SecurityManager.setCustomReadingPassages(context, updated)
+    }
+
+    fun removeCustomPassage(index: Int) {
+        val updated = customPassages.filterIndexed { i, _ -> i != index }
+        customPassages = updated
+        SecurityManager.setCustomReadingPassages(context, updated)
     }
 
     fun updateAction(value: SecurityManager.ImpulseAction) {

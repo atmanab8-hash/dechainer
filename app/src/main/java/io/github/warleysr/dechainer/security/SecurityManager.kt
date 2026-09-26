@@ -9,13 +9,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.warleysr.dechainer.BuildConfig
 import io.github.warleysr.dechainer.data.DeviceAdmin
+import io.github.warleysr.dechainer.data.ReadingPassage
+import org.json.JSONArray
+import org.json.JSONObject
 import java.security.SecureRandom
 import androidx.core.content.edit
 
 class SecurityManager {
 
     enum class ChallengeType {
-        MATH, WORDS, TETRIS
+        MATH, WORDS, TETRIS, READING
     }
 
     /** What the "I'm having impulses" panic button does on top of locking Dechainer itself. */
@@ -25,6 +28,11 @@ class SecurityManager {
 
         /** The timer, plus suspending a user-picked list of apps until it runs out. */
         TIMER_AND_SUSPEND
+    }
+
+    /** Where the reading challenge takes its texts from. */
+    enum class ReadingSource {
+        BIBLE, QURAN, QUOTES, CUSTOM
     }
 
     companion object {
@@ -37,6 +45,9 @@ class SecurityManager {
         const val TETRIS_MIN_MINUTES = 1
         const val TETRIS_MAX_MINUTES = 15
         const val TETRIS_DEFAULT_MINUTES = 3
+
+        const val READING_MIN_COUNT = 1
+        const val READING_DEFAULT_COUNT = 5
 
         const val DEBUG_AUTO_START_SESSION_KEY = "debug_auto_start_session"
 
@@ -160,6 +171,51 @@ class SecurityManager {
         fun setTetrisSoundEnabled(context: Context, enabled: Boolean) {
             val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
             prefs.edit { putBoolean("tetris_sound", enabled) }
+        }
+
+        fun getReadingSource(context: Context): ReadingSource {
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            val stored = prefs.getString("reading_source", ReadingSource.BIBLE.name)!!
+            return runCatching { ReadingSource.valueOf(stored) }.getOrDefault(ReadingSource.BIBLE)
+        }
+
+        fun setReadingSource(context: Context, source: ReadingSource) {
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            prefs.edit { putString("reading_source", source.name) }
+        }
+
+        /**
+         * How many texts the reading challenge shows. Stored as chosen; callers cap it to what the
+         * selected source actually has, so switching sources doesn't lose the setting.
+         */
+        fun getReadingCount(context: Context): Int {
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            return prefs.getInt("reading_count", READING_DEFAULT_COUNT).coerceAtLeast(READING_MIN_COUNT)
+        }
+
+        fun setReadingCount(context: Context, count: Int) {
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            prefs.edit { putInt("reading_count", count.coerceAtLeast(READING_MIN_COUNT)) }
+        }
+
+        /** Phrases the user wrote for the reading challenge, in the order they were added. */
+        fun getCustomReadingPassages(context: Context): List<ReadingPassage> {
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            val json = prefs.getString("reading_custom_passages", null) ?: return emptyList()
+            return runCatching {
+                val array = JSONArray(json)
+                List(array.length()) { i ->
+                    val item = array.getJSONObject(i)
+                    ReadingPassage(item.getString("text"), item.optString("source"))
+                }
+            }.getOrDefault(emptyList())
+        }
+
+        fun setCustomReadingPassages(context: Context, passages: List<ReadingPassage>) {
+            val array = JSONArray()
+            passages.forEach { array.put(JSONObject().put("text", it.text).put("source", it.source)) }
+            val prefs = context.getSharedPreferences("security_prefs", Context.MODE_PRIVATE)
+            prefs.edit { putString("reading_custom_passages", array.toString()) }
         }
 
         fun getImpulseAction(context: Context): ImpulseAction {

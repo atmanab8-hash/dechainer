@@ -30,6 +30,7 @@ import io.github.warleysr.dechainer.R
 import io.github.warleysr.dechainer.data.DeviceOwnerRepository
 import io.github.warleysr.dechainer.screens.challenges.ChallengeScaffold
 import io.github.warleysr.dechainer.screens.challenges.MathChallenge
+import io.github.warleysr.dechainer.screens.challenges.ReadingChallenge
 import io.github.warleysr.dechainer.screens.challenges.TetrisChallenge
 import io.github.warleysr.dechainer.screens.challenges.WordChallenge
 import io.github.warleysr.dechainer.security.SecurityManager
@@ -135,6 +136,7 @@ fun LockScreen(onAuthenticated: () -> Unit) {
                     when (pending[challengeIndex]) {
                         SecurityManager.ChallengeType.MATH -> MathChallenge(onSuccess = ::completeCurrent)
                         SecurityManager.ChallengeType.WORDS -> WordChallenge(onSuccess = ::completeCurrent)
+                        SecurityManager.ChallengeType.READING -> ReadingChallenge(onSuccess = ::completeCurrent)
                         SecurityManager.ChallengeType.TETRIS -> TetrisChallenge(
                             minutes = SecurityManager.getTetrisMinutes(context),
                             onSuccess = ::completeCurrent

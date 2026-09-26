@@ -26,10 +26,28 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     androidResources {
         noCompress.add("tflite")
+        localeFilters += listOf("en", "pt")
+    }
+
+    packaging {
+        jniLibs {
+            // NsfwContentDetector only uses the classic Interpreter API on the CPU, which loads
+            // just libLiteRt.so. The GPU accelerator (dlopen'd on demand, optional) and the JNI
+            // bridge for the CompiledModel API are never used.
+            excludes += listOf("**/libLiteRtClGlAccelerator.so", "**/liblitert_jni.so")
+        }
+    }
+
+    dependenciesInfo {
+        includeInApk = false
     }
 
     signingConfigs {
@@ -74,9 +92,6 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             all {
-                // Force a neutral locale for the test JVM. On a Turkish (tr_TR)
-                // default locale, "Linux".lowercase() yields "lınux" (dotless i),
-                // which breaks native library name resolution in Conscrypt/Robolectric.
                 it.systemProperty("user.language", "en")
                 it.systemProperty("user.country", "US")
             }
