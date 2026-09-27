@@ -420,7 +420,7 @@
     <string name="usage_warning_remove_stage">Remove stage</string>
     <string name="color_filter_settings">Color modes</string>
     <string name="color_filter_settings_desc">Grayscale, night light and other screen color filters during the time windows you choose.</string>
-    <string name="color_filter_explanation">Applies screen color filters, such as grayscale, night light or extra dim, during the time windows you choose, making the phone less appealing. While a window is active the filters can\'t be turned off: they are switched back on right away, and the active window, the selected modes and their strength can\'t be changed until it ends.</string>
+    <string name="color_filter_explanation">Applies screen color filters, such as grayscale, night light or extra dim, during the time windows you choose, making the phone less appealing.</string>
     <string name="color_filter_permission_failed">Could not grant the permission. Make sure Shizuku is running and Déchaîner has access to it.</string>
     <string name="color_filter_enable">Enable color mode windows</string>
     <string name="color_filter_locked">Active now (%1$s), changes require the recovery code</string>
@@ -442,7 +442,6 @@
     <string name="color_filter_night_light_temperature">Color temperature</string>
     <string name="color_filter_extra_dim_level">Intensity</string>
     <string name="color_filter_windows">Color mode time windows</string>
-    <string name="color_filter_windows_desc">The selected modes are on during these windows. Adding a window or a mode never asks for the recovery code; removing one, changing intensity or turning the feature off does. None of that is possible while a window is active.</string>
     <string name="color_filter_no_windows">No time window set. The filters won\'t be turned on.</string>
     <string name="color_filter_window_active">%1$s (active now)</string>
     <string name="color_filter_edit_windows">Edit</string>

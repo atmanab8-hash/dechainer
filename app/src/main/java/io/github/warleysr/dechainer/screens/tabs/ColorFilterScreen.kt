@@ -214,14 +214,6 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             }
-
-            item {
-                Text(
-                    stringResource(R.string.color_filter_windows_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
         }
         SnackbarHost(
             hostState = snackbarHostState,
