@@ -6,13 +6,15 @@ import android.graphics.PixelFormat
 import android.view.View
 import android.view.WindowManager
 import android.view.WindowManager.LayoutParams
+import kotlin.math.ln
+import kotlin.math.roundToInt
 
 class NightLightOverlay(private val service: AccessibilityService) {
     private val windowManager = service.getSystemService(WindowManager::class.java)
     private var view: View? = null
 
-    fun show(intensity: Int) {
-        val color = tint(intensity)
+    fun show(temperature: Int, intensity: Int) {
+        val color = tint(temperature, intensity)
         view?.let {
             it.setBackgroundColor(color)
             return
@@ -39,12 +41,25 @@ class NightLightOverlay(private val service: AccessibilityService) {
         view = null
     }
 
-    private fun tint(intensity: Int): Int {
-        val alpha = intensity.coerceIn(0, 100) * MAX_ALPHA / 100
-        return Color.argb(alpha, 255, 130, 0)
+    // Modelled on an overlay app whose 3200K / 5% filter came closest to Samsung's eye comfort
+    // shield: it turned white into (252, 249, 244) and black into (8, 5, 0), which is (185, 116, 0)
+    // at alpha 11. Other temperatures keep that colour's blue-free, darkened take on the blackbody
+    // hue, and the intensity is its opacity on the same scale.
+    private fun tint(temperature: Int, intensity: Int): Int {
+        val alpha = (intensity.coerceIn(0, 100) * MAX_ALPHA / 100f).roundToInt()
+        val green = blackbodyGreen(temperature) * GREEN_SCALE
+        return Color.argb(alpha, RED, green.roundToInt().coerceIn(0, 255), 0)
+    }
+
+    // Tanner Helland's blackbody approximation; red is saturated below 6600K.
+    private fun blackbodyGreen(kelvin: Int): Float {
+        val t = kelvin.coerceIn(1000, 6600) / 100f
+        return (99.4708025861f * ln(t) - 161.1195681661f).coerceIn(0f, 255f)
     }
 
     private companion object {
-        const val MAX_ALPHA = 120
+        const val MAX_ALPHA = 220
+        const val RED = 185
+        const val GREEN_SCALE = 116f / 184f
     }
 }

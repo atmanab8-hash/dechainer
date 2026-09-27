@@ -11,11 +11,16 @@ object ColorFilterSettings {
     const val KEY_ENABLED = "enabled"
     const val KEY_WINDOWS = "windows"
     const val KEY_MODES = "modes"
-    const val KEY_NIGHT_LIGHT_INTENSITY = "night_light_intensity"
+    // Overlay opacity, in a new key since the old one held a 0-100 strength on a different scale.
+    const val KEY_NIGHT_LIGHT_INTENSITY = "night_light_overlay_intensity"
+    const val KEY_NIGHT_LIGHT_TEMPERATURE = "night_light_temperature"
     const val KEY_EXTRA_DIM_LEVEL = "extra_dim_level"
 
     val DEFAULT_MODES = setOf(ColorFilterMode.GRAYSCALE)
-    const val DEFAULT_NIGHT_LIGHT_INTENSITY = 70
+    const val DEFAULT_NIGHT_LIGHT_INTENSITY = 5
+    const val MAX_NIGHT_LIGHT_INTENSITY = 60
+    const val DEFAULT_NIGHT_LIGHT_TEMPERATURE = 3200
+    val NIGHT_LIGHT_TEMPERATURES = listOf(1800, 2000, 2500, 2700, 3200, 4000)
     const val DEFAULT_EXTRA_DIM_LEVEL = 50
 
     fun isEnabled(prefs: SharedPreferences): Boolean = prefs.getBoolean(KEY_ENABLED, false)
@@ -34,6 +39,9 @@ object ColorFilterSettings {
 
     fun nightLightIntensity(prefs: SharedPreferences): Int =
         prefs.getInt(KEY_NIGHT_LIGHT_INTENSITY, DEFAULT_NIGHT_LIGHT_INTENSITY)
+
+    fun nightLightTemperature(prefs: SharedPreferences): Int =
+        prefs.getInt(KEY_NIGHT_LIGHT_TEMPERATURE, DEFAULT_NIGHT_LIGHT_TEMPERATURE)
 
     fun extraDimLevel(prefs: SharedPreferences): Int =
         prefs.getInt(KEY_EXTRA_DIM_LEVEL, DEFAULT_EXTRA_DIM_LEVEL)

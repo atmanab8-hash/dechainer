@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.warleysr.dechainer.DechainerAccessibilityService
 import io.github.warleysr.dechainer.R
+import io.github.warleysr.dechainer.data.ColorFilterController
+import io.github.warleysr.dechainer.data.ColorFilterSettings
 import io.github.warleysr.dechainer.models.ColorFilterMode
 import io.github.warleysr.dechainer.screens.common.RecoveryGate
 import io.github.warleysr.dechainer.screens.common.RecoveryGateDialog
@@ -90,8 +92,7 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
                     trailingContent = {
                         Switch(
                             checked = viewModel.enabled,
-                            enabled = if (viewModel.enabled) !viewModel.isLocked
-                                else accessibilityActive && !viewModel.grantingPermission,
+                            enabled = viewModel.enabled || (accessibilityActive && !viewModel.grantingPermission),
                             onCheckedChange = { checked ->
                                 if (checked) {
                                     if (viewModel.permissionGranted) {
@@ -143,7 +144,6 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
                 ColorFilterModeRow(
                     mode = mode,
                     selected = selected,
-                    enabled = !(selected && viewModel.isLocked),
                     onSelectedChange = { checked ->
                         if (checked) {
                             viewModel.updateMode(mode, true)
@@ -155,20 +155,30 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
                     }
                 )
                 if (selected && mode == ColorFilterMode.NIGHT_LIGHT) {
-                    StrengthSlider(
-                        label = stringResource(R.string.color_filter_night_light_intensity),
-                        value = viewModel.nightLightIntensity,
-                        enabled = !viewModel.isLocked,
-                        recoveryGate = recoveryGate,
-                        onChange = { viewModel.updateNightLightIntensity(it) },
-                        onLocked = showLocked
+                    TemperaturePicker(
+                        value = viewModel.nightLightTemperature,
+                        onSelect = { kelvin ->
+                            recoveryGate.run {
+                                if (!viewModel.updateNightLightTemperature(kelvin)) showLocked()
+                            }
+                        }
                     )
+                    // The platform filter has no opacity, only the overlay fallback does.
+                    if (!ColorFilterController.platformNightLight) {
+                        StrengthSlider(
+                            label = stringResource(R.string.color_filter_night_light_intensity),
+                            value = viewModel.nightLightIntensity,
+                            max = ColorFilterSettings.MAX_NIGHT_LIGHT_INTENSITY,
+                            recoveryGate = recoveryGate,
+                            onChange = { viewModel.updateNightLightIntensity(it) },
+                            onLocked = showLocked
+                        )
+                    }
                 }
                 if (selected && mode == ColorFilterMode.EXTRA_DIM) {
                     StrengthSlider(
                         label = stringResource(R.string.color_filter_extra_dim_level),
                         value = viewModel.extraDimLevel,
-                        enabled = !viewModel.isLocked,
                         recoveryGate = recoveryGate,
                         onChange = { viewModel.updateExtraDimLevel(it) },
                         onLocked = showLocked
@@ -223,7 +233,6 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
         TimeWindowsDialog(
             title = stringResource(R.string.color_filter_windows),
             initialWindows = viewModel.windows,
-            lockedWindows = viewModel.lockedWindows.toSet(),
             emptyMessage = stringResource(R.string.color_filter_no_windows),
             onDismiss = { showWindowsDialog = false },
             onConfirm = { newWindows ->
@@ -243,7 +252,6 @@ fun ColorFilterScreen(viewModel: ColorFilterViewModel = viewModel()) {
 private fun ColorFilterModeRow(
     mode: ColorFilterMode,
     selected: Boolean,
-    enabled: Boolean,
     onSelectedChange: (Boolean) -> Unit
 ) {
     val (icon, titleRes, descRes) = when (mode) {
@@ -265,9 +273,9 @@ private fun ColorFilterModeRow(
         supportingContent = { Text(stringResource(descRes)) },
         leadingContent = { Icon(icon, null) },
         trailingContent = {
-            Checkbox(checked = selected, enabled = enabled, onCheckedChange = onSelectedChange)
+            Checkbox(checked = selected, onCheckedChange = onSelectedChange)
         },
-        modifier = Modifier.clickable(enabled = enabled) { onSelectedChange(!selected) }
+        modifier = Modifier.clickable { onSelectedChange(!selected) }
     )
 }
 
@@ -275,7 +283,7 @@ private fun ColorFilterModeRow(
 private fun StrengthSlider(
     label: String,
     value: Int,
-    enabled: Boolean,
+    max: Int = 100,
     recoveryGate: RecoveryGate,
     onChange: (Int) -> Boolean,
     onLocked: () -> Unit
@@ -296,8 +304,24 @@ private fun StrengthSlider(
                     }
                 }
             },
-            valueRange = 0f..100f,
-            enabled = enabled
+            valueRange = 0f..max.toFloat()
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TemperaturePicker(value: Int, onSelect: (Int) -> Unit) {
+    Column(modifier = Modifier.padding(start = 72.dp, end = 16.dp)) {
+        Text(stringResource(R.string.color_filter_night_light_temperature), style = MaterialTheme.typography.bodySmall)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ColorFilterSettings.NIGHT_LIGHT_TEMPERATURES.forEach { kelvin ->
+                FilterChip(
+                    selected = kelvin == value,
+                    onClick = { if (kelvin != value) onSelect(kelvin) },
+                    label = { Text("${kelvin}K") }
+                )
+            }
+        }
     }
 }

@@ -70,7 +70,7 @@ object ColorFilterController {
         }
         if (ColorFilterMode.NIGHT_LIGHT in modes && platformNightLight) {
             targets += NIGHT_DISPLAY_TEMPERATURE to
-                nightLightTemperature(ColorFilterSettings.nightLightIntensity(prefs)).toString()
+                platformTemperature(ColorFilterSettings.nightLightTemperature(prefs)).toString()
             targets += NIGHT_DISPLAY_ACTIVATED to "1"
         }
         if (ColorFilterMode.EXTRA_DIM in modes) {
@@ -128,10 +128,11 @@ object ColorFilterController {
         Settings.Secure.putString(context.contentResolver, key, previous)
     }
 
-    private fun nightLightTemperature(intensity: Int): Int {
+    // The platform only accepts temperatures within its configured range, so warmer presets clamp to its warmest.
+    private fun platformTemperature(kelvin: Int): Int {
         val min = systemInteger("config_nightDisplayColorTemperatureMin", FALLBACK_NIGHT_TEMPERATURE_MIN)
         val max = systemInteger("config_nightDisplayColorTemperatureMax", FALLBACK_NIGHT_TEMPERATURE_MAX)
-        return max - (max - min) * intensity.coerceIn(0, 100) / 100
+        return kelvin.coerceIn(min, max)
     }
 
     @SuppressLint("DiscouragedApi")

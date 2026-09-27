@@ -415,7 +415,7 @@
     <string name="color_filter_explanation">Aplica filtros de cor na tela, como escala de cinza, luz noturna ou escurecimento extra, durante as janelas de horário que você escolher, tornando o celular menos atraente. Enquanto uma janela está ativa os filtros não podem ser desativados: eles são religados na hora, e a janela ativa, os modos selecionados e a intensidade deles não podem ser alterados até ela terminar.</string>
     <string name="color_filter_permission_failed">Não foi possível conceder a permissão. Verifique se o Shizuku está rodando e se o Déchaîner tem acesso a ele.</string>
     <string name="color_filter_enable">Ativar janelas de modos de cor</string>
-    <string name="color_filter_locked">Ativo agora (%1$s), não pode ser desativado até a janela terminar</string>
+    <string name="color_filter_locked">Ativo agora (%1$s), alterações exigem o código de recuperação</string>
     <string name="color_filter_locked_error">Os modos de cor não podem ser desativados nem enfraquecidos durante uma janela ativa</string>
     <string name="color_filter_status_on">Os filtros estão ligados agora</string>
     <string name="color_filter_status_off">Os filtros estão desligados agora</string>
@@ -431,6 +431,7 @@
     <string name="color_filter_mode_inversion">Inversão de cores</string>
     <string name="color_filter_mode_inversion_desc">Inverte todas as cores da tela</string>
     <string name="color_filter_night_light_intensity">Intensidade</string>
+    <string name="color_filter_night_light_temperature">Temperatura de cor</string>
     <string name="color_filter_extra_dim_level">Intensidade</string>
     <string name="color_filter_windows">Janelas dos modos de cor</string>
     <string name="color_filter_windows_desc">Os modos selecionados ficam ligados durante essas janelas. Adicionar uma janela ou um modo nunca pede o código de recuperação; remover, mudar a intensidade ou desativar o recurso pede. Nada disso é possível enquanto uma janela está ativa.</string>

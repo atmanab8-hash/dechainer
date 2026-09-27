@@ -415,7 +415,7 @@
     <string name="color_filter_explanation">Applies screen color filters, such as grayscale, night light or extra dim, during the time windows you choose, making the phone less appealing. While a window is active the filters can\'t be turned off: they are switched back on right away, and the active window, the selected modes and their strength can\'t be changed until it ends.</string>
     <string name="color_filter_permission_failed">Could not grant the permission. Make sure Shizuku is running and Déchaîner has access to it.</string>
     <string name="color_filter_enable">Enable color mode windows</string>
-    <string name="color_filter_locked">Active now (%1$s), it can\'t be turned off until the window ends</string>
+    <string name="color_filter_locked">Active now (%1$s), changes require the recovery code</string>
     <string name="color_filter_locked_error">Color modes can\'t be turned off or weakened during an active window</string>
     <string name="color_filter_status_on">Filters are on right now</string>
     <string name="color_filter_status_off">Filters are off right now</string>
@@ -425,12 +425,13 @@
     <string name="color_filter_mode_grayscale">Grayscale</string>
     <string name="color_filter_mode_grayscale_desc">Shows everything in black and white</string>
     <string name="color_filter_mode_night_light">Night light</string>
-    <string name="color_filter_mode_night_light_desc">Tints the screen amber, cutting blue light</string>
+    <string name="color_filter_mode_night_light_desc">Tints the screen warm yellow, cutting blue light</string>
     <string name="color_filter_mode_extra_dim">Extra dim</string>
     <string name="color_filter_mode_extra_dim_desc">Dims the screen below the minimum brightness</string>
     <string name="color_filter_mode_inversion">Color inversion</string>
     <string name="color_filter_mode_inversion_desc">Inverts all screen colors</string>
     <string name="color_filter_night_light_intensity">Intensity</string>
+    <string name="color_filter_night_light_temperature">Color temperature</string>
     <string name="color_filter_extra_dim_level">Intensity</string>
     <string name="color_filter_windows">Color mode time windows</string>
     <string name="color_filter_windows_desc">The selected modes are on during these windows. Adding a window or a mode never asks for the recovery code; removing one, changing intensity or turning the feature off does. None of that is possible while a window is active.</string>

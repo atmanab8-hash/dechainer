@@ -35,6 +35,9 @@ class ColorFilterViewModel : ViewModel() {
     var nightLightIntensity by mutableIntStateOf(ColorFilterSettings.nightLightIntensity(prefs))
         private set
 
+    var nightLightTemperature by mutableIntStateOf(ColorFilterSettings.nightLightTemperature(prefs))
+        private set
+
     var extraDimLevel by mutableIntStateOf(ColorFilterSettings.extraDimLevel(prefs))
         private set
 
@@ -85,6 +88,14 @@ class ColorFilterViewModel : ViewModel() {
         if (isLocked) return false
         nightLightIntensity = value
         prefs.edit { putInt(ColorFilterSettings.KEY_NIGHT_LIGHT_INTENSITY, value) }
+        return true
+    }
+
+    fun updateNightLightTemperature(value: Int): Boolean {
+        refresh()
+        if (isLocked) return false
+        nightLightTemperature = value
+        prefs.edit { putInt(ColorFilterSettings.KEY_NIGHT_LIGHT_TEMPERATURE, value) }
         return true
     }
 

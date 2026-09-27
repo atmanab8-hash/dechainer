@@ -1079,8 +1079,14 @@ class DechainerAccessibilityService : AccessibilityService() {
 
         val overlayNightLight = enforce && !ColorFilterController.platformNightLight &&
             ColorFilterMode.NIGHT_LIGHT in ColorFilterSettings.loadModes(colorFilterPrefs)
-        if (overlayNightLight) nightLightOverlay.show(ColorFilterSettings.nightLightIntensity(colorFilterPrefs))
-        else nightLightOverlay.hide()
+        if (overlayNightLight) {
+            nightLightOverlay.show(
+                ColorFilterSettings.nightLightTemperature(colorFilterPrefs),
+                ColorFilterSettings.nightLightIntensity(colorFilterPrefs)
+            )
+        } else {
+            nightLightOverlay.hide()
+        }
 
         if (!ColorFilterSettings.isEnabled(colorFilterPrefs)) return
         val delay = ColorFilterSettings.millisUntilNextBoundary(ColorFilterSettings.loadWindows(colorFilterPrefs))
