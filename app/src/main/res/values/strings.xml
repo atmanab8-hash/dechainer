@@ -203,6 +203,13 @@
     <string name="start_time">Start</string>
     <string name="end_time">End</string>
     <string name="invalid_time_window">Start and end time cannot be the same</string>
+    <string name="new_time_window">New window: %1$s</string>
+    <string name="add_another_time_window">Add another window</string>
+    <string name="time_limit_per_day">Different limit for each day of the week</string>
+    <string name="time_limit_varies_today">%1$s today (varies by day)</string>
+    <string name="time_limit_none_today">none today (varies by day)</string>
+    <string name="time_limit_today">%1$s today</string>
+    <string name="time_limit_none_today_short">none today</string>
     <string name="outside_time_window_title">Outside allowed time</string>
     <string name="outside_time_window_description">%1$s can only be used during its allowed time windows:</string>
     <string name="manage_groups">Manage groups</string>

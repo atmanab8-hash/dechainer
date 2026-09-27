@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.core.content.edit
 import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.models.AppGroup
+import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.DayOfWeek
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -49,8 +51,8 @@ object AppGroupRepository {
 
     fun renameGroup(groupId: String, name: String) = updateGroup(groupId) { it.copy(name = name) }
 
-    fun setGroupTimeLimit(groupId: String, minutes: Int) =
-        updateGroup(groupId) { it.copy(timeLimitMinutes = minutes) }
+    fun setGroupTimeLimit(groupId: String, limit: TimeLimit) =
+        updateGroup(groupId) { it.copy(timeLimit = limit) }
 
     fun setGroupTimeWindows(groupId: String, windows: List<TimeWindow>) =
         updateGroup(groupId) { it.copy(timeWindows = windows) }
@@ -103,7 +105,8 @@ object AppGroupRepository {
                 put("id", group.id)
                 put("name", group.name)
                 put("packages", JSONArray(group.packageNames.toList()))
-                put("limit", group.timeLimitMinutes)
+                put("limit", group.timeLimit.dailyMinutes)
+                group.timeLimit.weeklyMinutes?.let { put("weeklyLimit", JSONArray(it)) }
                 put("windows", JSONArray(group.timeWindows.map { w ->
                     JSONObject().apply { put("s", w.startMinute); put("e", w.endMinute) }
                 }))
@@ -125,11 +128,15 @@ object AppGroupRepository {
                     val w = windowsArray.getJSONObject(j)
                     TimeWindow(w.getInt("s"), w.getInt("e"))
                 }
+                // Groups saved before per-weekday limits existed only have the daily "limit".
+                val weekly = obj.optJSONArray("weeklyLimit")
+                    ?.let { arr -> (0 until arr.length()).map { arr.getInt(it) } }
+                    ?.takeIf { it.size == DayOfWeek.entries.size }
                 AppGroup(
                     id = obj.getString("id"),
                     name = obj.getString("name"),
                     packageNames = packages,
-                    timeLimitMinutes = obj.getInt("limit"),
+                    timeLimit = weekly?.let { TimeLimit.perDay(it) } ?: TimeLimit.daily(obj.getInt("limit")),
                     timeWindows = windows
                 )
             }

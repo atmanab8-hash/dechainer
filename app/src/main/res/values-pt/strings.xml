@@ -203,6 +203,13 @@
     <string name="start_time">Início</string>
     <string name="end_time">Fim</string>
     <string name="invalid_time_window">O horário de início e fim não podem ser iguais</string>
+    <string name="new_time_window">Nova janela: %1$s</string>
+    <string name="add_another_time_window">Adicionar outra janela</string>
+    <string name="time_limit_per_day">Limite diferente para cada dia da semana</string>
+    <string name="time_limit_varies_today">%1$s hoje (varia por dia)</string>
+    <string name="time_limit_none_today">nenhum hoje (varia por dia)</string>
+    <string name="time_limit_today">%1$s hoje</string>
+    <string name="time_limit_none_today_short">nenhum hoje</string>
     <string name="outside_time_window_title">Fora do horário permitido</string>
     <string name="outside_time_window_description">%1$s só pode ser usado dentro das suas janelas de horário permitidas:</string>
     <string name="manage_groups">Gerenciar grupos</string>

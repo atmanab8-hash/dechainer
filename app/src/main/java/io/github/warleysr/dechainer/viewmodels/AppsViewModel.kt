@@ -9,6 +9,7 @@ import io.github.warleysr.dechainer.data.AppGroupRepository
 import io.github.warleysr.dechainer.data.AppRepository
 import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
+import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -76,8 +77,8 @@ class AppsViewModel : ViewModel() {
         }
     }
 
-    fun setAppTimeLimit(packageName: String, minutes: Int) {
-        AppRepository.setAppTimeLimit(packageName, minutes)
+    fun setAppTimeLimit(packageName: String, limit: TimeLimit) {
+        AppRepository.setAppTimeLimit(packageName, limit)
         loadApps()
     }
 
@@ -120,8 +121,8 @@ class AppsViewModel : ViewModel() {
         loadGroups()
     }
 
-    fun setGroupTimeLimit(groupId: String, minutes: Int) {
-        AppGroupRepository.setGroupTimeLimit(groupId, minutes)
+    fun setGroupTimeLimit(groupId: String, limit: TimeLimit) {
+        AppGroupRepository.setGroupTimeLimit(groupId, limit)
         loadGroups()
     }
 

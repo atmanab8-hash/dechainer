@@ -3,6 +3,8 @@ package io.github.warleysr.dechainer.screens.tabs
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,12 +27,14 @@ import io.github.warleysr.dechainer.screens.common.RecoveryGateDialog
 import io.github.warleysr.dechainer.screens.common.rememberRecoveryGate
 import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
+import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
 import io.github.warleysr.dechainer.viewmodels.AppsViewModel
 import io.github.warleysr.dechainer.viewmodels.DeviceOwnerViewModel
 import io.github.warleysr.dechainer.viewmodels.NavigationViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -88,7 +92,7 @@ fun AppsScreen(viewModel: AppsViewModel, deviceOwnerViewModel: DeviceOwnerViewMo
     var showMenu by remember { mutableStateOf(false) }
 
     val restrictedGroupPackages = remember(viewModel.groups) {
-        viewModel.groups.filter { it.timeLimitMinutes > 0 || it.timeWindows.isNotEmpty() }
+        viewModel.groups.filter { it.timeLimit.isSet || it.timeWindows.isNotEmpty() }
             .flatMap { it.packageNames }
             .toSet()
     }
@@ -96,7 +100,7 @@ fun AppsScreen(viewModel: AppsViewModel, deviceOwnerViewModel: DeviceOwnerViewMo
     val filteredApps = remember(viewModel.apps, viewModel.groups, searchQuery, showSystemApps, selectedGroupFilter) {
         viewModel.apps.filter {
             (showSystemApps || !it.isSystem || it.isHidden || it.isUninstallBlocked ||
-                it.timeLimitMinutes > 0 || it.timeWindows.isNotEmpty() ||
+                it.timeLimit.isSet || it.timeWindows.isNotEmpty() ||
                 it.packageName in restrictedGroupPackages) &&
             (it.name.contains(searchQuery, ignoreCase = true) ||
             it.packageName.contains(searchQuery, ignoreCase = true)) &&
@@ -104,7 +108,7 @@ fun AppsScreen(viewModel: AppsViewModel, deviceOwnerViewModel: DeviceOwnerViewMo
                 viewModel.groups.firstOrNull { g -> g.id == selectedGroupFilter }?.packageNames?.contains(it.packageName) == true)
         }
         .sortedBy {
-            it.timeLimitMinutes == 0 && it.timeWindows.isEmpty() && it.packageName !in restrictedGroupPackages
+            !it.timeLimit.isSet && it.timeWindows.isEmpty() && it.packageName !in restrictedGroupPackages
         }
     }
 
@@ -230,9 +234,9 @@ fun AppsScreen(viewModel: AppsViewModel, deviceOwnerViewModel: DeviceOwnerViewMo
         TimeLimitDialog(
             app = app,
             onDismiss = { showTimeLimitDialog = null },
-            onConfirm = { minutes, reopeningSeconds ->
+            onConfirm = { limit, reopeningSeconds ->
                 recoveryGate.run {
-                    viewModel.setAppTimeLimit(app.packageName, minutes)
+                    viewModel.setAppTimeLimit(app.packageName, limit)
                     viewModel.setAppReopenTime(app.packageName, reopeningSeconds)
                 }
                 showTimeLimitDialog = null
@@ -315,10 +319,10 @@ fun AppsScreen(viewModel: AppsViewModel, deviceOwnerViewModel: DeviceOwnerViewMo
             group = group,
             allApps = viewModel.apps,
             onDismiss = { showEditGroupDialog = null },
-            onSave = { name, limitMinutes, windows, packageNames ->
+            onSave = { name, limit, windows, packageNames ->
                 recoveryGate.run {
                     if (name != group.name) viewModel.renameGroup(group.id, name)
-                    viewModel.setGroupTimeLimit(group.id, limitMinutes)
+                    viewModel.setGroupTimeLimit(group.id, limit)
                     viewModel.setGroupTimeWindows(group.id, windows)
                     viewModel.setGroupPackages(group.id, packageNames)
                 }
@@ -467,14 +471,12 @@ fun AppRestrictionsDialog(
 
 @Composable
 fun LimitUsageRow(
-    limitMinutes: Int,
+    limit: TimeLimit,
     usedMinutes: Long,
     @androidx.annotation.StringRes limitLabelRes: Int,
     @androidx.annotation.StringRes usedLabelRes: Int
 ) {
-    val h = limitMinutes / 60
-    val m = limitMinutes % 60
-    val fmtLimit = "${if (h > 0) "${h}h " else ""}${if (m > 0) "${m}min" else ""}"
+    val fmtLimit = timeLimitSummary(limit, compact = true)
 
     val usedH = usedMinutes / 60
     val usedM = usedMinutes % 60
@@ -516,18 +518,18 @@ fun AppRow(app: AppItem, viewModel: AppsViewModel, onClick: () -> Unit) {
                     )
                 }
 
-                if (app.timeLimitMinutes > 0) {
+                if (app.timeLimit.isSet) {
                     LimitUsageRow(
-                        limitMinutes = app.timeLimitMinutes,
+                        limit = app.timeLimit,
                         usedMinutes = viewModel.getAppUsage(app.packageName, inMinutes = true),
                         limitLabelRes = R.string.limit,
                         usedLabelRes = R.string.used
                     )
                 }
 
-                if (group != null && group.timeLimitMinutes > 0) {
+                if (group != null && group.timeLimit.isSet) {
                     LimitUsageRow(
-                        limitMinutes = group.timeLimitMinutes,
+                        limit = group.timeLimit,
                         usedMinutes = viewModel.getGroupUsage(group.id, inMinutes = true),
                         limitLabelRes = R.string.group_limit,
                         usedLabelRes = R.string.group_used
@@ -719,53 +721,21 @@ private fun AppActionItem(
 fun TimeLimitDialog(
     app: AppItem,
     onDismiss: () -> Unit,
-    onConfirm: (Int, Int) -> Unit
+    onConfirm: (TimeLimit, Int) -> Unit
 ) {
-    var hours by remember { mutableIntStateOf(app.timeLimitMinutes / 60) }
-    var minutes by remember { mutableIntStateOf(app.timeLimitMinutes % 60) }
+    val limitState = rememberTimeLimitEditorState(app.timeLimit)
     var reopeningSeconds by remember { mutableIntStateOf(app.reopeningSeconds) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.app_time_limit_dialog_title, app.name)) },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NumberPickerWheel(
-                        value = hours,
-                        range = 0..23,
-                        onValueChange = { hours = it },
-                        label = stringResource(R.string.hours)
-                    )
-                    Text(
-                        ":",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    NumberPickerWheel(
-                        value = minutes,
-                        range = 0..59,
-                        onValueChange = { minutes = it },
-                        label = stringResource(R.string.minutes)
-                    )
-                }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                TimeLimitEditor(limitState)
                 Spacer(Modifier.height(16.dp))
-                if (hours == 0 && minutes == 0) {
-                    Text(stringResource(R.string.none), style = MaterialTheme.typography.labelSmall)
-                } else {
-                    Text(
-                        "Total: ${hours}h ${minutes}min",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
                 HorizontalDivider()
                 Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.reopen_time))
@@ -776,7 +746,7 @@ fun TimeLimitDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(hours * 60 + minutes, reopeningSeconds) }) {
+            TextButton(onClick = { onConfirm(limitState.toTimeLimit(), reopeningSeconds) }) {
                 Text(stringResource(R.string.confirm))
             }
         },
@@ -800,16 +770,43 @@ fun TimeWindowsDialog(
     val windows = remember { mutableStateListOf(*initialWindows.toTypedArray()) }
     var showAddForm by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
+    // Bumped whenever the form restarts so its wheels scroll back to the defaults.
+    var formKey by remember { mutableIntStateOf(0) }
     var startHour by remember { mutableIntStateOf(18) }
     var startMinute by remember { mutableIntStateOf(0) }
     var endHour by remember { mutableIntStateOf(22) }
     var endMinute by remember { mutableIntStateOf(0) }
 
+    fun resetForm() {
+        startHour = 18; startMinute = 0; endHour = 22; endMinute = 0
+        showError = false
+        formKey++
+    }
+
+    /**
+     * The window being edited is part of the list the dialog saves — there's no separate
+     * confirmation for it. Returns false (and flags the error) when it can't be added.
+     */
+    fun commitPendingWindow(): Boolean {
+        if (!showAddForm) return true
+        val start = startHour * 60 + startMinute
+        val end = endHour * 60 + endMinute
+        if (start == end) {
+            showError = true
+            return false
+        }
+        val window = TimeWindow(start, end)
+        if (window !in windows) windows.add(window)
+        showAddForm = false
+        resetForm()
+        return true
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 if (windows.isEmpty() && !showAddForm) {
                     Text(emptyMessage, style = MaterialTheme.typography.bodySmall)
                 }
@@ -826,77 +823,64 @@ fun TimeWindowsDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 if (showAddForm) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.start_time), style = MaterialTheme.typography.labelSmall)
-                        Row(horizontalArrangement = Arrangement.Center) {
-                            NumberPickerWheel(
-                                value = startHour,
-                                range = 0..23,
-                                onValueChange = { startHour = it },
-                                label = stringResource(R.string.hours)
-                            )
-                            NumberPickerWheel(
-                                value = startMinute,
-                                range = 0..59,
-                                onValueChange = { startMinute = it },
-                                label = stringResource(R.string.minutes)
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text(stringResource(R.string.end_time), style = MaterialTheme.typography.labelSmall)
-                        Row(horizontalArrangement = Arrangement.Center) {
-                            NumberPickerWheel(
-                                value = endHour,
-                                range = 0..23,
-                                onValueChange = { endHour = it },
-                                label = stringResource(R.string.hours)
-                            )
-                            NumberPickerWheel(
-                                value = endMinute,
-                                range = 0..59,
-                                onValueChange = { endMinute = it },
-                                label = stringResource(R.string.minutes)
-                            )
-                        }
-                        if (showError) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                stringResource(R.string.invalid_time_window),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Row {
-                            TextButton(onClick = { showAddForm = false; showError = false }) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            TextButton(onClick = {
-                                val start = startHour * 60 + startMinute
-                                val end = endHour * 60 + endMinute
-                                if (start == end) {
-                                    showError = true
-                                } else {
-                                    windows.add(TimeWindow(start, end))
-                                    showAddForm = false
-                                    showError = false
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    stringResource(
+                                        R.string.new_time_window,
+                                        TimeWindow(startHour * 60 + startMinute, endHour * 60 + endMinute).formatted()
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { showAddForm = false; resetForm() }) {
+                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
                                 }
-                            }) {
-                                Text(stringResource(R.string.confirm))
+                            }
+                            key(formKey) {
+                                TimeOfDayWheels(
+                                    label = stringResource(R.string.start_time),
+                                    hour = startHour,
+                                    minute = startMinute,
+                                    onHourChange = { startHour = it; showError = false },
+                                    onMinuteChange = { startMinute = it; showError = false }
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                TimeOfDayWheels(
+                                    label = stringResource(R.string.end_time),
+                                    hour = endHour,
+                                    minute = endMinute,
+                                    onHourChange = { endHour = it; showError = false },
+                                    onMinuteChange = { endMinute = it; showError = false }
+                                )
+                            }
+                            if (showError) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    stringResource(R.string.invalid_time_window),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                             }
                         }
                     }
-                } else {
-                    TextButton(onClick = { showAddForm = true }) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.add_time_window))
-                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                TextButton(onClick = { if (commitPendingWindow()) showAddForm = true }) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(if (showAddForm) R.string.add_another_time_window else R.string.add_time_window))
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(windows.toList()) }) {
+            TextButton(onClick = { if (commitPendingWindow()) onConfirm(windows.toList()) }) {
                 Text(stringResource(R.string.confirm))
             }
         },
@@ -913,28 +897,31 @@ fun NumberPickerWheel(
     value: Int,
     range: IntRange,
     onValueChange: (Int) -> Unit,
-    label: String
+    label: String,
+    modifier: Modifier = Modifier.width(70.dp)
 ) {
     val items = range.toList()
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = items.indexOf(value))
     val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
 
     LaunchedEffect(listState.isScrollInProgress) {
         if (!listState.isScrollInProgress) {
             val centerIndex = listState.firstVisibleItemIndex
             if (centerIndex in items.indices) {
-                onValueChange(items[centerIndex])
+                currentOnValueChange(items[centerIndex])
             }
         }
     }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(70.dp)
+        modifier = modifier
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
         Box(
             modifier = Modifier
+                .fillMaxWidth()
                 .height(120.dp)
                 .background(
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),

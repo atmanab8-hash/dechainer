@@ -209,8 +209,9 @@ private fun loadOverview(context: Context): LimitsOverview {
         null
     }
 
+    // Limits that vary by weekday are shown with today's value; days without a limit are skipped.
     val groups = AppGroupRepository.getGroups()
-        .filter { it.timeLimitMinutes > 0 }
+        .filter { it.timeLimit.todayMinutes() > 0 }
         .map { group ->
             LimitEntry(
                 key = group.id,
@@ -218,13 +219,14 @@ private fun loadOverview(context: Context): LimitsOverview {
                 detail = group.packageNames.mapNotNull(::labelOf).sortedBy { it.lowercase() }
                     .joinToString(", ").ifEmpty { null },
                 icon = null,
-                limitMinutes = group.timeLimitMinutes,
+                limitMinutes = group.timeLimit.todayMinutes(),
                 usedMinutes = AppGroupRepository.getGroupUsage(group.id, inMinutes = true)
             )
         }
         .sortedByDescending { it.fraction }
 
-    val apps = AppRepository.getAppTimeLimits().mapNotNull { (pkg, limit) ->
+    val apps = AppRepository.getAppTimeLimits().mapNotNull { (pkg, timeLimit) ->
+        val limit = timeLimit.todayMinutes().takeIf { it > 0 } ?: return@mapNotNull null
         val info = try {
             pm.getApplicationInfo(pkg, 0)
         } catch (_: PackageManager.NameNotFoundException) {

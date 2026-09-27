@@ -2,6 +2,8 @@ package io.github.warleysr.dechainer.screens.tabs
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,13 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import io.github.warleysr.dechainer.R
 import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
+import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
 import io.github.warleysr.dechainer.screens.common.AppPickerDialog
 
@@ -77,14 +77,9 @@ fun GroupsManagementDialog(
                                             stringResource(R.string.group_apps_count, group.packageNames.size),
                                             style = MaterialTheme.typography.labelSmall
                                         )
-                                        if (group.timeLimitMinutes > 0) {
-                                            val h = group.timeLimitMinutes / 60
-                                            val m = group.timeLimitMinutes % 60
+                                        if (group.timeLimit.isSet) {
                                             Text(
-                                                stringResource(
-                                                    R.string.limit,
-                                                    "${if (h > 0) "${h}h " else ""}${if (m > 0) "${m}min" else ""}"
-                                                ),
+                                                stringResource(R.string.limit, timeLimitSummary(group.timeLimit)),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.primary
                                             )
@@ -152,56 +147,22 @@ fun CreateGroupDialog(
 @Composable
 fun GroupTimeLimitDialog(
     title: String,
-    initialMinutes: Int,
+    initialLimit: TimeLimit,
     onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
+    onConfirm: (TimeLimit) -> Unit
 ) {
-    var hours by remember { mutableIntStateOf(initialMinutes / 60) }
-    var minutes by remember { mutableIntStateOf(initialMinutes % 60) }
+    val limitState = rememberTimeLimitEditorState(initialLimit)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NumberPickerWheel(
-                        value = hours,
-                        range = 0..23,
-                        onValueChange = { hours = it },
-                        label = stringResource(R.string.hours)
-                    )
-                    Text(
-                        ":",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    NumberPickerWheel(
-                        value = minutes,
-                        range = 0..59,
-                        onValueChange = { minutes = it },
-                        label = stringResource(R.string.minutes)
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-                if (hours == 0 && minutes == 0) {
-                    Text(stringResource(R.string.none), style = MaterialTheme.typography.labelSmall)
-                } else {
-                    Text(
-                        "Total: ${hours}h ${minutes}min",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                TimeLimitEditor(limitState)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(hours * 60 + minutes) }) { Text(stringResource(R.string.confirm)) }
+            TextButton(onClick = { onConfirm(limitState.toTimeLimit()) }) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
@@ -214,11 +175,11 @@ fun EditGroupDialog(
     group: AppGroup,
     allApps: List<AppItem>,
     onDismiss: () -> Unit,
-    onSave: (name: String, limitMinutes: Int, windows: List<TimeWindow>, packageNames: Set<String>) -> Unit,
+    onSave: (name: String, limit: TimeLimit, windows: List<TimeWindow>, packageNames: Set<String>) -> Unit,
     onDelete: () -> Unit
 ) {
     var name by remember { mutableStateOf(group.name) }
-    var limitMinutes by remember { mutableIntStateOf(group.timeLimitMinutes) }
+    var limit by remember { mutableStateOf(group.timeLimit) }
     var windows by remember { mutableStateOf(group.timeWindows) }
     val selectedPackages = remember { mutableStateListOf(*group.packageNames.toTypedArray()) }
     var showTimeLimitDialog by remember { mutableStateOf(false) }
@@ -245,8 +206,8 @@ fun EditGroupDialog(
                     Icon(Icons.Default.Timer, null)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (limitMinutes > 0)
-                            stringResource(R.string.limit, "${limitMinutes / 60}h ${limitMinutes % 60}min")
+                        if (limit.isSet)
+                            stringResource(R.string.limit, timeLimitSummary(limit))
                         else stringResource(R.string.group_time_limit)
                     )
                 }
@@ -308,7 +269,7 @@ fun EditGroupDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                onSave(name.trim().ifBlank { group.name }, limitMinutes, windows, selectedPackages.toSet())
+                onSave(name.trim().ifBlank { group.name }, limit, windows, selectedPackages.toSet())
             }) {
                 Text(stringResource(R.string.confirm))
             }
@@ -321,10 +282,10 @@ fun EditGroupDialog(
     if (showTimeLimitDialog) {
         GroupTimeLimitDialog(
             title = stringResource(R.string.group_time_limit_dialog_title, name.ifBlank { group.name }),
-            initialMinutes = limitMinutes,
+            initialLimit = limit,
             onDismiss = { showTimeLimitDialog = false },
             onConfirm = {
-                limitMinutes = it
+                limit = it
                 showTimeLimitDialog = false
             }
         )

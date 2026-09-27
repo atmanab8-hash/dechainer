@@ -37,6 +37,7 @@ import io.github.warleysr.dechainer.activities.ReopeningLimitActivity
 import io.github.warleysr.dechainer.activities.TimeUpActivity
 import io.github.warleysr.dechainer.data.AppGroupRepository
 import io.github.warleysr.dechainer.data.AppRepository
+import io.github.warleysr.dechainer.data.AppTimeLimits
 import io.github.warleysr.dechainer.data.AppTimeWindows
 import io.github.warleysr.dechainer.data.BrowserRestrictionsManager
 import io.github.warleysr.dechainer.data.ColorFilterController
@@ -74,6 +75,7 @@ class DechainerAccessibilityService : AccessibilityService() {
     private val lastClosedTimes = HashMap<String, Long>();
 
     private lateinit var limitPrefs: SharedPreferences
+    private lateinit var weeklyLimitPrefs: SharedPreferences
     private lateinit var usagePrefs: SharedPreferences
     private lateinit var reopenPrefs: SharedPreferences
     private lateinit var timeWindowPrefs: SharedPreferences
@@ -228,7 +230,7 @@ class DechainerAccessibilityService : AccessibilityService() {
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         when (prefs) {
-            limitPrefs -> {
+            limitPrefs, weeklyLimitPrefs -> {
                 if (key == currentPackage) {
                     handler.removeCallbacks(blockRunnable)
                     currentPackage?.let { startTracking(it) }
@@ -450,7 +452,8 @@ class DechainerAccessibilityService : AccessibilityService() {
         isRunning = true
         disablingService = false
 
-        limitPrefs = getSharedPreferences("app_limits", MODE_PRIVATE)
+        limitPrefs = getSharedPreferences(AppTimeLimits.PREFS_NAME, MODE_PRIVATE)
+        weeklyLimitPrefs = getSharedPreferences(AppTimeLimits.WEEKLY_PREFS_NAME, MODE_PRIVATE)
         usagePrefs = getSharedPreferences("internal_usage_stats", MODE_PRIVATE)
         reopenPrefs = getSharedPreferences("reopen_times", MODE_PRIVATE)
         timeWindowPrefs = getSharedPreferences(AppTimeWindows.PREFS_NAME, MODE_PRIVATE)
@@ -465,6 +468,7 @@ class DechainerAccessibilityService : AccessibilityService() {
         nsfwSuspensionTracker = VisualBlockingSuspensionTracker(applicationContext)
 
         limitPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
+        weeklyLimitPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         timeWindowPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         groupsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         blockedWordsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
@@ -536,6 +540,7 @@ class DechainerAccessibilityService : AccessibilityService() {
         unregisterReceiver(packageReceiver)
         unregisterReceiver(screenReceiver)
         limitPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
+        weeklyLimitPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         timeWindowPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         groupsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         blockedWordsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
@@ -1108,12 +1113,13 @@ class DechainerAccessibilityService : AccessibilityService() {
 
     private fun getControlledPackages(): Array<String> {
         val restrictedGroupPackages = AppGroupRepository.getGroups()
-            .filter { it.timeLimitMinutes > 0 || it.timeWindows.isNotEmpty() }
+            .filter { it.timeLimit.isSet || it.timeWindows.isNotEmpty() }
             .flatMap { it.packageNames }
 
         return targetPackages
             .union(passiveForbiddenPatterns.keys)
             .union(limitPrefs.all.keys)
+            .union(weeklyLimitPrefs.all.keys)
             .union(reopenPrefs.all.keys)
             .union(timeWindowPrefs.all.keys)
             .union(restrictedGroupPackages)
@@ -1167,6 +1173,7 @@ class DechainerAccessibilityService : AccessibilityService() {
      * The app's own settings plus its group's, when it belongs to one. A group does not replace
      * the app's individual limit/windows — it adds another cap alongside them, and whichever of
      * the two is more restrictive is the one that actually applies (see [startTracking]).
+     * Limits that vary by weekday are resolved to today's value here.
      */
     private data class TrackingConfig(
         val group: AppGroup?,
@@ -1178,12 +1185,12 @@ class DechainerAccessibilityService : AccessibilityService() {
     private fun trackingConfigFor(pkg: String): TrackingConfig {
         val group = AppGroupRepository.getGroupForPackage(pkg)
         val appWindows = AppTimeWindows.decode(timeWindowPrefs.getString(pkg, null))
-        val appLimitMinutes = limitPrefs.getInt(pkg, 0)
+        val appLimitMinutes = AppTimeLimits.read(limitPrefs, weeklyLimitPrefs, pkg).todayMinutes()
         return if (group != null) {
             TrackingConfig(
                 group = group,
                 appLimitMinutes = appLimitMinutes,
-                groupLimitMinutes = group.timeLimitMinutes,
+                groupLimitMinutes = group.timeLimit.todayMinutes(),
                 windows = TimeWindow.intersect(group.timeWindows, appWindows)
             )
         } else {

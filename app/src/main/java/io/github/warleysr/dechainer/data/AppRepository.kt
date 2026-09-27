@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.content.edit
 import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.models.AppItem
+import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
 import java.util.concurrent.TimeUnit
 
@@ -24,6 +25,12 @@ object AppRepository {
 
     private val hiddenAppsPrefs
         get() = context.getSharedPreferences(HIDDEN_APPS_PREFS, Context.MODE_PRIVATE)
+
+    private val dailyLimitsPrefs
+        get() = context.getSharedPreferences(AppTimeLimits.PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val weeklyLimitsPrefs
+        get() = context.getSharedPreferences(AppTimeLimits.WEEKLY_PREFS_NAME, Context.MODE_PRIVATE)
 
     @Volatile
     private var cachedApps: List<AppItem>? = null
@@ -44,7 +51,8 @@ object AppRepository {
     }
 
     private fun loadAppsFromSystem(): List<AppItem> {
-        val limitsPrefs = context.getSharedPreferences("app_limits", Context.MODE_PRIVATE)
+        val limitsPrefs = dailyLimitsPrefs
+        val weeklyPrefs = weeklyLimitsPrefs
         val reopenPrefs = context.getSharedPreferences("reopen_times", Context.MODE_PRIVATE)
         val ratingsPrefs = context.getSharedPreferences("app_ratings", Context.MODE_PRIVATE)
         val timeWindowsPrefs = context.getSharedPreferences(AppTimeWindows.PREFS_NAME, Context.MODE_PRIVATE)
@@ -68,7 +76,7 @@ object AppRepository {
                     isSystem = isSystem,
                     isHidden = isHidden,
                     isUninstallBlocked = isUninstallBlocked,
-                    timeLimitMinutes = limitsPrefs.getInt(packageName, 0),
+                    timeLimit = AppTimeLimits.read(limitsPrefs, weeklyPrefs, packageName),
                     reopeningSeconds = reopenPrefs.getInt(packageName, 0),
                     timeWindows = AppTimeWindows.decode(timeWindowsPrefs.getString(packageName, null)),
                     isSuspended = isSuspended,
@@ -145,17 +153,12 @@ object AppRepository {
         updateCachedApp(packageName) { it.copy(isUninstallBlocked = block) }
     }
 
-    fun setAppTimeLimit(packageName: String, minutes: Int) {
-        context.getSharedPreferences("app_limits", Context.MODE_PRIVATE).edit {
-            if (minutes > 0) putInt(packageName, minutes) else remove(packageName)
-        }
-        updateCachedApp(packageName) { it.copy(timeLimitMinutes = minutes) }
+    fun setAppTimeLimit(packageName: String, limit: TimeLimit) {
+        AppTimeLimits.write(dailyLimitsPrefs, weeklyLimitsPrefs, packageName, limit)
+        updateCachedApp(packageName) { it.copy(timeLimit = limit) }
     }
 
-    fun getAppTimeLimits(): Map<String, Int> =
-        context.getSharedPreferences("app_limits", Context.MODE_PRIVATE).all
-            .mapNotNull { (pkg, minutes) -> (minutes as? Int)?.takeIf { it > 0 }?.let { pkg to it } }
-            .toMap()
+    fun getAppTimeLimits(): Map<String, TimeLimit> = AppTimeLimits.readAll(dailyLimitsPrefs, weeklyLimitsPrefs)
 
     fun getAppUsage(packageName: String, inMinutes: Boolean = false): Long {
         val used = context.getSharedPreferences("internal_usage_stats", Context.MODE_PRIVATE)

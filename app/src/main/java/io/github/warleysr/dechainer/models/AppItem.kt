@@ -9,7 +9,7 @@ data class AppItem(
     val isSystem: Boolean,
     val isHidden: Boolean = false,
     val isUninstallBlocked: Boolean = false,
-    val timeLimitMinutes: Int = 0,
+    val timeLimit: TimeLimit = TimeLimit.NONE,
     val reopeningSeconds: Int = 0,
     val timeWindows: List<TimeWindow> = emptyList(),
     val isSuspended: Boolean = false,
