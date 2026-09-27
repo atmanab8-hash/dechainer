@@ -64,6 +64,11 @@ class SecurityManager {
             sessionEndTime = System.currentTimeMillis() + (10 * 60 * 1000) // 10 minutes
         }
 
+        /** Restarts the 10-minute countdown of a session that is still active; an expired one needs the code again. */
+        fun renewSession() {
+            if (isSessionActive()) startSession()
+        }
+
         fun endSession() {
             sessionEndTime = 0L
         }

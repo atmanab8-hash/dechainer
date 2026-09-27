@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.AppBlocking
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.LockClock
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -120,6 +121,9 @@ class MainActivity : ComponentActivity() {
                                             text = "%02d:%02d".format(minutes, seconds),
                                             style = MaterialTheme.typography.labelLarge
                                         )
+                                        IconButton(onClick = { SecurityManager.renewSession() }) {
+                                            Icon(Icons.Outlined.Refresh, stringResource(R.string.renew_session))
+                                        }
                                         IconButton(onClick = { SecurityManager.endSession() }) {
                                             Icon(Icons.Outlined.Logout, null)
                                         }

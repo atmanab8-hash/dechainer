@@ -210,6 +210,7 @@
     <string name="time_limit_none_today">none today (varies by day)</string>
     <string name="time_limit_today">%1$s today</string>
     <string name="time_limit_none_today_short">none today</string>
+    <string name="renew_session">Renew session</string>
     <string name="outside_time_window_title">Outside allowed time</string>
     <string name="outside_time_window_description">%1$s can only be used during its allowed time windows:</string>
     <string name="manage_groups">Manage groups</string>
