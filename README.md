@@ -14,7 +14,7 @@ built so that your future self can't simply turn it off.
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7f52ff?style=flat-square&logo=kotlin&logoColor=white)
 [![License](https://img.shields.io/github/license/warleysr/dechainer?style=flat-square&color=b8860b)](LICENSE)
 
-[**Download the latest APK**](https://github.com/warleysr/dechainer/releases/latest) · [How it works](#how-it-works) · [Features](#features) · [Installation](#installation) · [Recovery](#recovery-and-safety)
+[**Download the latest APK**](https://github.com/warleysr/dechainer/releases/latest) · [Superpowers](#its-superpowers) · [Features](#features) · [Installation](#installation) · [Recovery](#recovery-and-safety)
 
 </div>
 
@@ -54,6 +54,37 @@ built so that your future self can't simply turn it off.
 | Turning it off | A toggle | A 16-character recovery code stored on paper |
 | Your data | Often sent to a server | Never leaves the device |
 
+## How it works
+
+A regular Android app lives in a sandbox. It can't see what other apps show, can't stop you from changing system settings, and can be uninstalled with two taps. That's why most blockers are so easy to get around.
+
+Déchaîner is granted two special powers that ordinary apps never get:
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>1. Device Owner</h3>
+      <p>The same level of control companies use to manage work phones. It lets Déchaîner:</p>
+      <ul>
+        <li>lock system settings such as VPN, private DNS, factory reset and app installs</li>
+        <li>force SafeSearch and site blocklists on browsers</li>
+        <li>suspend apps, and stop any app from being uninstalled, including itself</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <h3>2. Accessibility Service</h3>
+      <p>The same access screen readers use to help blind users. It lets Déchaîner:</p>
+      <ul>
+        <li>read text on screen and as it's being typed</li>
+        <li>look at images and video on screen, using an on-device ML model</li>
+        <li>know which app and screen is open, to enforce time limits and block specific screens</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+Both are granted once, during setup, through [Shizuku](https://shizuku.rikka.app/). From then on, the Accessibility Service is protected against being turned off, and only your **recovery code** can take either power away. That code lives on a piece of paper, not in your head.
+
 ## Highlights
 
 | | |
@@ -64,29 +95,6 @@ built so that your future self can't simply turn it off.
 | 🚨 **Impulse lock** | A panic button on the lock screen that locks Déchaîner (and chosen apps) for 15 minutes to 6 hours, resistant to clock changes. |
 | ⏱️ **Time limits and windows** | Daily limits per app or group, per weekday, allowed time windows, reopening cooldowns and usage warnings. |
 | 🌙 **Color modes** | Grayscale, night light, extra dim or inversion during scheduled windows, which can't be switched off while active. |
-
-## How It Works
-
-```mermaid
-flowchart LR
-    S[Shizuku<br/>wireless debugging] -->|dpm set-device-owner| DO[Device Owner]
-    S -->|enables| AS[Accessibility Service]
-
-    DO --> R[System restrictions<br/>VPN, DNS, factory reset...]
-    DO --> B[Browser policies<br/>SafeSearch, URL blocklist]
-    DO --> P[App suspension<br/>and uninstall protection]
-
-    AS --> W[Word blocking]
-    AS --> V[Visual blocking<br/>TFLite, on-device]
-    AS --> A[Activity blocker]
-    AS --> T[Time limits<br/>and windows]
-    AS --> C[Color modes]
-
-    RC{{Recovery code}} -.->|required to change or remove| DO
-    RC -.-> AS
-```
-
-Déchaîner runs with **Device Owner** privileges, which let it enforce restrictions at the OS level and prevent its own removal without a recovery code. Most of the active blocking (word detection, visual content scanning, activity interception, time limits, torrent detection) is driven by an **Accessibility Service**, which is enabled from inside the app and is itself protected against being turned off.
 
 ## Features
 
@@ -179,7 +187,7 @@ Déchaîner runs with **Device Owner** privileges, which let it enforce restrict
 
 ## Installation
 
-**Requirements:** Android 11 or newer on a 64-bit ARM device (`arm64-v8a`), which covers virtually every phone from recent years. 32-bit-only devices (mostly low-end Android Go phones) can't install it.
+**Requirements:** Android 11 or newer.
 
 Becoming Device Owner requires a bridge between user space and system space. Follow these steps precisely:
 
